@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="layout/main.html">
+  <div layout:fragment="content">
+    <form action="/search" method="get">
+      <input class="form-control" type="text" placeholder="Search..." name="search"><br>
+      <button class="btn btn-primary">FIND</button>
+    </form>
+    <br><br>
+
+    <form action="/search-alt" method="get">
+      <input class="form-control" type="text" placeholder="Search..." name="search"><br>
+      <button class="btn btn-primary">FIND ALTERNATIVE</button>
+    </form>
+    <h1 th:text="${usersAlt}"></h1>
+
+    <form action="/add-user" method="post">
+      <input class="form-control" name="email" type="text" placeholder="Insert email..."><br><br>
+      <input class="form-control" type="password" name="password" placeholder="Insert password..."><br><br>
+      <input class="form-control" type="text" name="fullName" placeholder="Insert full name..."><br><br>
+      <button class="btn btn-success">ADD USER</button>
+    </form>
+
+    <table class="table table-striped">
+      <thead>
+      <th>ID</th>
+      <th>EMAIL</th>
+      <th>FULL NAME</th>
+      <th>PROGRAMMING LANGUAGE</th>
+      <th>DETAILS</th>
+      <th>REMOVE</th>
+      </thead>
+      <tr th:style="${user.programmingLanguage == 'Java'
+  ? 'color:green;'
+  : (user.programmingLanguage == 'C#'
+  ? 'color:blue'
+  : (user.programmingLanguage == 'Golang'
+  ? 'color:orange'
+  : 'color:red'))}"
+          th:each="user : ${users}">
+        <!--  for(User user : users) {}  -->
+        <td th:text="${user.id}"></td> <!--  <%=user.id%>  -->
+        <td th:text="${user.email}"></td>
+        <td th:text="${user.fullName}"></td>
+        <td th:text="${user.programmingLanguage}"></td>
+        <td><a class="btn btn-dark" th:href="${'/user-details?userId='+user.id}">DETAILS</a></td>
+        <td>
+          <form th:action="${'/user-delete/' + user.id}" method="post">
+            <button class="btn btn-danger">REMOVE ACCOUNT</button>
+          </form>
+        </td>
+      </tr>
+    </table>
+  </div>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="layout/main.html">
+  <div layout:fragment="content">
+    <form th:action="${'/user-edit/' + user.id}" method="post">
+      <input th:value="${user.email}" name="email" type="text" placeholder="Insert email..."><br><br>
+      <input th:value="${user.password}" type="password" name="password" placeholder="Insert password..."><br><br>
+      <input th:value="${user.fullName}" type="text" name="fullname" placeholder="Insert full name..."><br><br>
+      <select class="form-select" name="city_id">
+        <option th:each="city : ${cities}"
+                th:text="${city.name + ' / ' + city.shortName}"
+                th:value="${city.id}"
+                th:selected="${user.city != null && city.id == user.city.id}">
+        </option>
+      </select>
+      <button>SAVE CHANGES</button>
+    </form>
+    <hr>
+    <form th:action="${'/user-delete/' + user.id}" method="post">
+      <button>REMOVE ACCOUNT</button>
+    </form>
+
+
+  </div>
+</html>
