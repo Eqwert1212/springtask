@@ -1,77 +1,120 @@
 package kz.bitlab.G118springfirstapp.controller;
 
-import java.util.List;
-import kz.bitlab.G118springfirstapp.db.DbManager;
-import kz.bitlab.G118springfirstapp.model.City;
+import jakarta.validation.Valid;
+import kz.bitlab.G118springfirstapp.service.UserService;
+import lombok.RequiredArgsConstructor;
+import kz.bitlab.G118springfirstapp.form.UserForm;
 import kz.bitlab.G118springfirstapp.model.User;
+import org.springframework.beans.propertyeditors.StringTrimmerEditor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
+@RequiredArgsConstructor
 public class HomeController {
+    private final UserService userService;
 
-    @GetMapping("/") //@WebServlet("/") + doGet()
-    public String homePage(Model model) {
-        List<User> users = DbManager.getUsers();
-        model.addAttribute("users", users); // req.setAttribute("users", users)
+    @InitBinder("userForm")
+    public void initFormBinder(WebDataBinder binder) {
+        binder.setAllowedFields("email", "fullName", "cityId");
+        binder.registerCustomEditor(String.class, new StringTrimmerEditor(true));
+    }
+
+    @ModelAttribute("userForm")
+    public UserForm userForm() {
+        return new UserForm();
+    }
+
+    @GetMapping({"/", "/search", "/search-alt"})
+    public String homePage(@RequestParam(defaultValue = "") String search,
+                           @RequestParam(defaultValue = "0") int page, Model model) {
+        populateHome(model, search.strip(), page);
         return "home";
     }
 
-    /**
-     * String email = req.getParameter("email"); String fullName = req.getParameter("fullName"); User
-     * user = new User(); user.setEmail(email); user.setFullName(fullName);.
-     *
-     * @param user новый пользователь
-     * @return главная страница.
-     */
     @PostMapping("/add-user")
-    public String addUser(User user) {
-        DbManager.addUser(user);
-        return "redirect:/"; //resp.sendRedirect("/")
+    public String addUser(@Valid @ModelAttribute("userForm") UserForm form,
+                          BindingResult errors, Model model, RedirectAttributes redirect) {
+        validateCity(form, errors);
+        if (errors.hasErrors()) {
+            populateHome(model, "", 0);
+            return "home";
+        }
+        User user = new User();
+        user.setEmail(form.getEmail());
+        user.setFullName(form.getFullName());
+        user.setCity(userService.getCityById(form.getCityId()));
+        userService.addUser(user);
+        redirect.addFlashAttribute("success", "Пользователь добавлен");
+        return "redirect:/";
     }
 
     @GetMapping("/user-details")
     public String getUser(@RequestParam(name = "userId") Long id, Model model) {
-        User user = DbManager.getUserById(id);
-        List<City> cities = DbManager.getCities();
-        model.addAttribute("cities", cities);
-        model.addAttribute("user", user);
+        User user = requireUser(id);
+        UserForm form = new UserForm();
+        form.setEmail(user.getEmail());
+        form.setFullName(user.getFullName());
+        form.setCityId(user.getCity() == null ? null : user.getCity().getId());
+        model.addAttribute("userForm", form);
+        populateDetails(model, id);
         return "userDetails";
     }
 
     @PostMapping("/user-edit/{id}")
-    public String editUser(@RequestParam String email,
-                           @RequestParam(name = "fullname") String fullName,
-                           @PathVariable Long id,
-                           @RequestParam(name = "city_id") Long cityId) {
-        if (fullName == null || fullName.isEmpty() || email == null || email.isEmpty()) {
-            throw new IllegalArgumentException("Parameters can not be null");
+    public String editUser(@PathVariable("id") Long id,
+                           @Valid @ModelAttribute("userForm") UserForm form,
+                           BindingResult errors, Model model, RedirectAttributes redirect) {
+        requireUser(id);
+        validateCity(form, errors);
+        if (errors.hasErrors()) {
+            populateDetails(model, id);
+            return "userDetails";
         }
-        DbManager.editUser(id, email, fullName, cityId);
+        userService.editUser(id, form.getEmail(), form.getFullName(), form.getCityId());
+        redirect.addFlashAttribute("success", "Изменения сохранены");
         return "redirect:/";
     }
 
     @PostMapping("/user-delete/{id}")
-    public String deleteUser(@PathVariable(name = "id") Long userId) {
-        DbManager.deleteUserById(userId);
+    public String deleteUser(@PathVariable("id") Long id, RedirectAttributes redirect) {
+        requireUser(id);
+        userService.deleteUserById(id);
+        redirect.addFlashAttribute("success", "Пользователь удалён");
         return "redirect:/";
     }
 
-    @GetMapping("/search")
-    public String search(@RequestParam String search, Model model) {
-        List<User> users = DbManager.findUsers(search);
-        model.addAttribute("users", users);
-        return "home";
+    private void validateCity(UserForm form, BindingResult errors) {
+        if (!errors.hasFieldErrors("cityId") && form.getCityId() != null
+                && userService.getCityById(form.getCityId()) == null) {
+            errors.rejectValue("cityId", "invalidCity", "Выберите город из списка");
+        }
     }
 
-    @GetMapping("/search-alt")
-    public String searchAlt(@RequestParam String search, Model model) {
-        String users = DbManager.findUsersAlt(search);
-        model.addAttribute("usersAlt", users);
-        return "home";
+    private User requireUser(Long id) {
+        User user = userService.getUserById(id);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
+        }
+        return user;
+    }
+
+    private void populateHome(Model model, String search, int page) {
+        var userPage = userService.getUserPage(search, page);
+        model.addAttribute("userPage", userPage);
+        model.addAttribute("users", userPage.getContent());
+        model.addAttribute("search", search);
+        model.addAttribute("cities", userService.getCities());
+    }
+
+    private void populateDetails(Model model, Long id) {
+        model.addAttribute("userId", id);
+        model.addAttribute("cities", userService.getCities());
     }
 }

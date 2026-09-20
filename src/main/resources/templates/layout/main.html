@@ -1,18 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
-<head th:insert="~{head.html}">
-</head>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head th:replace="~{head :: head}"></head>
 <body>
-<div th:insert="~{navbar.html}"></div>
-<div class="row col-8 mx-auto">
-  <div class="col-3">
-    <div th:insert="~{sidebar.html}"></div>
-  </div>
-  <div class="col-9">
-    <div layout:fragment="content"></div>
-  </div>
-</div>
-<div th:insert="~{footer.html}"></div>
+<header th:replace="~{navbar :: navbar}"></header>
+<main class="container" id="main"><div layout:fragment="content"></div></main>
+<footer th:replace="~{footer :: footer}"></footer>
 </body>
 </html>

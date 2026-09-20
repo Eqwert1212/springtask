@@ -1,25 +1,34 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="layout/main.html">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
   <div layout:fragment="content">
-    <form th:action="${'/user-edit/' + user.id}" method="post">
-      <input th:value="${user.email}" name="email" type="text" placeholder="Insert email..."><br><br>
-      <input th:value="${user.password}" type="password" name="password" placeholder="Insert password..."><br><br>
-      <input th:value="${user.fullName}" type="text" name="fullname" placeholder="Insert full name..."><br><br>
-      <select class="form-select" name="city_id">
-        <option th:each="city : ${cities}"
-                th:text="${city.name + ' / ' + city.shortName}"
-                th:value="${city.id}"
-                th:selected="${user.city != null && city.id == user.city.id}">
-        </option>
-      </select>
-      <button>SAVE CHANGES</button>
+    <a class="back-link" href="/">← К списку пользователей</a>
+    <section class="card edit-card"><h1>Редактирование пользователя</h1><p class="muted">Измените контактные данные и сохраните карточку.</p>
+    <form th:action="@{/user-edit/{id}(id=${userId})}" method="post" th:object="${userForm}">
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input id="email" class="form-control" type="email" th:field="*{email}" maxlength="254" required>
+        <div class="text-danger" th:errors="*{email}"></div>
+      </div>
+      <div class="mb-3">
+        <label for="fullName" class="form-label">Имя</label>
+        <input id="fullName" class="form-control" type="text" th:field="*{fullName}" maxlength="100" required>
+        <div class="text-danger" th:errors="*{fullName}"></div>
+      </div>
+      <div class="mb-3">
+        <label for="cityId" class="form-label">Город</label>
+        <select id="cityId" class="form-select" th:field="*{cityId}">
+          <option value="">Не указан</option>
+          <option th:each="city : ${cities}" th:value="${city.id}" th:text="${city.name}"></option>
+        </select>
+        <div class="text-danger" th:errors="*{cityId}"></div>
+      </div>
+      <button class="btn btn-primary">Сохранить изменения</button>
+      <a class="btn btn-light" href="/">Отмена</a>
     </form>
     <hr>
-    <form th:action="${'/user-delete/' + user.id}" method="post">
-      <button>REMOVE ACCOUNT</button>
-    </form>
-
-
+    <form th:action="@{/user-delete/{id}(id=${userId})}" method="post" data-confirm="Удалить пользователя? Это действие нельзя отменить.">
+      <button class="btn btn-danger">Удалить пользователя</button>
+    </form></section>
   </div>
 </html>

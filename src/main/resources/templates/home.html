@@ -1,55 +1,51 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="layout/main.html">
-  <div layout:fragment="content">
-    <form action="/search" method="get">
-      <input class="form-control" type="text" placeholder="Search..." name="search"><br>
-      <button class="btn btn-primary">FIND</button>
-    </form>
-    <br><br>
-
-    <form action="/search-alt" method="get">
-      <input class="form-control" type="text" placeholder="Search..." name="search"><br>
-      <button class="btn btn-primary">FIND ALTERNATIVE</button>
-    </form>
-    <h1 th:text="${usersAlt}"></h1>
-
-    <form action="/add-user" method="post">
-      <input class="form-control" name="email" type="text" placeholder="Insert email..."><br><br>
-      <input class="form-control" type="password" name="password" placeholder="Insert password..."><br><br>
-      <input class="form-control" type="text" name="fullName" placeholder="Insert full name..."><br><br>
-      <button class="btn btn-success">ADD USER</button>
-    </form>
-
-    <table class="table table-striped">
-      <thead>
-      <th>ID</th>
-      <th>EMAIL</th>
-      <th>FULL NAME</th>
-      <th>PROGRAMMING LANGUAGE</th>
-      <th>DETAILS</th>
-      <th>REMOVE</th>
-      </thead>
-      <tr th:style="${user.programmingLanguage == 'Java'
-  ? 'color:green;'
-  : (user.programmingLanguage == 'C#'
-  ? 'color:blue'
-  : (user.programmingLanguage == 'Golang'
-  ? 'color:orange'
-  : 'color:red'))}"
-          th:each="user : ${users}">
-        <!--  for(User user : users) {}  -->
-        <td th:text="${user.id}"></td> <!--  <%=user.id%>  -->
-        <td th:text="${user.email}"></td>
-        <td th:text="${user.fullName}"></td>
-        <td th:text="${user.programmingLanguage}"></td>
-        <td><a class="btn btn-dark" th:href="${'/user-details?userId='+user.id}">DETAILS</a></td>
-        <td>
-          <form th:action="${'/user-delete/' + user.id}" method="post">
-            <button class="btn btn-danger">REMOVE ACCOUNT</button>
-          </form>
-        </td>
-      </tr>
-    </table>
-  </div>
-</html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/main}">
+<div layout:fragment="content">
+<div class="page-heading"><div><p class="eyebrow">ВАШ СПРАВОЧНИК</p><h1>Пользователи</h1><p class="muted">Контакты и города — в одном месте.</p></div>
+<a class="btn btn-primary" href="#new-user">Добавить пользователя</a></div>
+<div class="notice" role="status" th:if="${success}" th:text="${success}"></div>
+<div class="workspace">
+<section class="card directory" aria-label="Список пользователей">
+<form th:action="@{/}" method="get" class="search-form" role="search">
+<label for="search">Поиск по имени или email</label><div class="search-row">
+<input id="search" class="form-control" type="search" name="search" th:value="${search}" placeholder="Например, Марат" maxlength="254">
+<button class="btn btn-primary">Найти</button><a class="btn btn-light" th:if="${!#strings.isEmpty(search)}" th:href="@{/}">Сбросить</a></div>
+</form>
+<div class="list-summary"><span>Найдено: <strong th:text="${userPage.totalElements}"></strong></span><span class="muted">По 10 на странице</span></div>
+<div class="empty-state" th:if="${userPage.empty}"><h2>Пользователи не найдены</h2><p class="muted" th:text="${#strings.isEmpty(search) ? 'Добавьте первого пользователя с помощью формы.' : 'Измените запрос или сбросьте поиск.'}"></p></div>
+<div class="table-scroll" th:unless="${userPage.empty}"><table>
+<thead><tr><th scope="col">Пользователь</th><th scope="col">Город</th><th scope="col">Действия</th></tr></thead>
+<tbody><tr th:each="user : ${users}">
+<td><a class="user-name" th:href="@{/user-details(userId=${user.id})}" th:text="${user.fullName}"></a><span class="user-email" th:text="${user.email}"></span></td>
+<td th:text="${user.city == null ? 'Не указан' : user.city.name}"></td>
+<td><div class="row-actions"><a class="btn btn-light btn-small" th:href="@{/user-details(userId=${user.id})}">Изменить</a>
+<form th:action="@{/user-delete/{id}(id=${user.id})}" method="post" data-confirm="Удалить пользователя? Это действие нельзя отменить."><button class="btn btn-danger btn-small" type="submit" th:aria-label="${'Удалить: ' + user.fullName}">Удалить</button></form></div></td>
+</tr></tbody></table></div>
+<nav class="pagination" aria-label="Страницы списка" th:if="${userPage.totalPages > 1}">
+<a class="btn btn-light" th:if="${userPage.hasPrevious()}" th:href="@{/(search=${search},page=${userPage.number - 1})}">← Назад</a>
+<span class="page-number" th:text="${'Страница ' + (userPage.number + 1) + ' из ' + userPage.totalPages}"></span>
+<a class="btn btn-light" th:if="${userPage.hasNext()}" th:href="@{/(search=${search},page=${userPage.number + 1})}">Далее →</a>
+</nav>
+</section>
+<section class="card create-card" id="new-user"><h2>Новый пользователь</h2><p class="muted">Имя и email обязательны.</p>
+<form th:action="@{/add-user}" method="post" th:object="${userForm}">
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input id="email" class="form-control" type="email" th:field="*{email}" maxlength="254" required>
+        <div class="text-danger" th:errors="*{email}"></div>
+      </div>
+      <div class="mb-3">
+        <label for="fullName" class="form-label">Имя</label>
+        <input id="fullName" class="form-control" type="text" th:field="*{fullName}" maxlength="100" required>
+        <div class="text-danger" th:errors="*{fullName}"></div>
+      </div>
+      <div class="mb-3">
+        <label for="cityId" class="form-label">Город</label>
+        <select id="cityId" class="form-select" th:field="*{cityId}">
+          <option value="">Не указан</option>
+          <option th:each="city : ${cities}" th:value="${city.id}" th:text="${city.name}"></option>
+        </select>
+        <div class="text-danger" th:errors="*{cityId}"></div>
+      </div>
+<button class="btn btn-primary full-width">Добавить пользователя</button>
+</form></section></div></div></html>
